@@ -1,5 +1,5 @@
 [package]
-name = "rust-cli-starter"
+name = "ignore"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,9 +11,10 @@ branch = "master"
 features = ["derive"]
 
 [dependencies]
+git2 = "0.14"  # https://github.com/rust-lang/git2-rs
 # Recommended dependencies
 # general 
-config = { git = "https://github.com/mehcode/config-rs", branch = "master" }
+# config = { git = "https://github.com/mehcode/config-rs", branch = "master" }
 # serde = { git = "https://github.com/serde-rs/serde", branch = "master" }
 # tokio = { git = "https://github.com/tokio-rs/tokio", branch = "master" }
 # reqwest = { git = "https://github.com/seanmonstar/reqwest", branch = "master" }

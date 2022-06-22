@@ -2,52 +2,29 @@
  * This is the main driver code for the starter.
  * Run with `cargo run` or `<project_name>` to see the auto-generated help text.
  */
-use clap::{Parser, Subcommand};
+use clap::Parser;
 
 mod commands;
 use commands::example::*;
 
-mod settings;
-use settings::Settings;
-
 #[derive(Parser)]
-#[clap(name = "Starter kit")]
+#[clap(name = "ignore")]
 #[clap(author = "Myles <myles@themapletree.io>")]
 #[clap(version = "0.1.0")]
-#[clap(about = "This is a starter kit for creating a CLI application with Rust.")]
-struct Cli {
-    #[clap(subcommand)]
-    command: Option<Commands>,
-}
+#[clap(about = "Outputs the typical gitignore for a search term")]
 
-#[derive(Subcommand)]
-enum Commands {
-    Basic,
-    Example(ExampleArguments),
+struct Cli {
+    query: String,
 }
 
 fn main() {
     let cli = Cli::parse();
-    let settings = Settings::new();
+    println!("{}", cli.query);
 
-    match settings {
-        Ok(_) => println!("Sucessfully loaded settings!"),
-        Err(e) => println!("Error loading settings: {:?}", e),
-    }
+    // get query
+    // check gitignore if a file exists
+    // if one exists, output to stdout
+    // else output error "can't find gitignore for query"
+    
 
-    match &cli.command {
-        Some(command) => match command {
-            Commands::Basic => basic_command(),
-            Commands::Example(args) => example_command(args),
-        },
-        None => default_command(),
-    }
-}
-
-fn default_command() {
-    println!("Running the default command from the top level");
-}
-
-fn basic_command() {
-    println!("Running the basic command from the top level");
 }
