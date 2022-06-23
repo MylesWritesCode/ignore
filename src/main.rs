@@ -2,6 +2,8 @@
  * This is the main driver code for the starter.
  * Run with `cargo run` or `<project_name>` to see the auto-generated help text.
  */
+use std::path::Path;
+
 use clap::Parser;
 use git2::Repository;
 
