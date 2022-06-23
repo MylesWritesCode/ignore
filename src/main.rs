@@ -2,13 +2,10 @@
  * This is the main driver code for the starter.
  * Run with `cargo run` or `<project_name>` to see the auto-generated help text.
  */
-use std::path::Path;
-
 use clap::Parser;
-use git2::{Repository, RepositoryOpenFlags};
+use git2::Repository;
 
 mod commands;
-use commands::example::*;
 
 #[derive(Parser)]
 #[clap(name = "ignore")]
@@ -22,7 +19,7 @@ struct Cli {
 
 const REMOTE: &str = "https://github.com/github/gitignore";
 
-fn main() {
+fn main() -> Result<(), git2::Error> {
     let cli = Cli::parse();
 
     // get query
@@ -30,14 +27,18 @@ fn main() {
 
     // run query against repo
 
-    let repo = match Repository::clone("https://github.com/github/gitignore", Path::new("./tmp")) {
-        Ok(repo) => {
-            let tree = repo.revparse_single("main");
+    // let repo = match Repository::open(REMOTE) {
+    let repo = Repository::open("./tmp")?;
+    let remote = REMOTE;
+    let mut remote = repo
+        .find_remote(remote)
+        .or_else(|_| repo.remote_anonymous(remote))?;
 
-            println!("{:?}", tree);
-        }
-        Err(e) => println!("Repository not found. {}", e),
-    };
+    let connection = remote.connect_auth(git2::Direction::Fetch, None, None)?;
+
+    let head = connection.list()?.first().unwrap();
+
+    println!("commit: {:?}", head.oid());
 
     // @note If I clone, then I'm just gonna use fs and treewalking to find the
     //       relevant gitignore, then output that. But that's not what I want
@@ -45,4 +46,5 @@ fn main() {
     // check gitignore if a file exists
     // if one exists, output to stdout
     // else output error "can't find gitignore for query"
+    return Ok(());
 }

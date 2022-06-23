@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use clap::{Args, Subcommand};
 
 #[derive(Args)]
