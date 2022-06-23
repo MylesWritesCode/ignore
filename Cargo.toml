@@ -5,11 +5,6 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies.clap]
-git = "https://github.com/clap-rs/clap"
-branch = "master"
-features = ["derive"]
-
 [dependencies]
 git2 = "0.14"  # https://github.com/rust-lang/git2-rs
 # Recommended dependencies
@@ -30,3 +25,25 @@ git2 = "0.14"  # https://github.com/rust-lang/git2-rs
 # insta = { git = "https://github.com/mitsuhiko/insta", branch = "master" }
 # fake = { git = "https://github.com/cksac/fake-rs", branch = "master" }
 # wiremock = { git = "https://github.com/LukeMathWalker/wiremock-rs", branch = "main" }
+
+[dependencies.clap]
+git = "https://github.com/clap-rs/clap"
+branch = "master"
+features = ["derive"]
+
+[dependencies.tokio]
+version = "1"
+features = ["full"]
+
+[dependencies.reqwest]
+version = "0.11.11"
+features = ["json"]
+
+[dependencies.serde]
+version = "1"
+features = ["derive"]
+
+[dependencies.serde_json]
+version = "1"
+  
+
