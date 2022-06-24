@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+use std::{collections::HashMap, hash::Hash};
+
 use clap::Parser;
 use git2::Repository;
 use serde::Deserialize;
@@ -44,11 +46,11 @@ struct ShaUrl {
     url: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct Branch {
-    commit: ShaUrl,
-    name: String,
-    protected: bool,
+#[derive(Debug)]
+struct Blob {
+    sha: String,
+    url: String,
+    path: String,
 }
 
 async fn with_rest(term: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -56,7 +58,29 @@ async fn with_rest(term: &str) -> Result<(), Box<dyn std::error::Error>> {
         .user_agent("MCA-Ignore-Tool")
         .build()?;
 
-    let tree = get_branches(&client).await?;
+    let main_branch = get_branches(&client).await?;
+    println!("{:#?}", main_branch);
+
+    let tree = client
+        .get(main_branch.url)
+        .send()
+        .await?
+        .json::<serde_json::Value>()
+        .await?
+        .get("tree".to_string())
+        .unwrap()
+        .to_owned()
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|x| Blob {
+            sha: x["sha"].to_string().replace("\"", ""),
+            url: x["url"].to_string().replace("\"", ""),
+            path: x["path"].to_string().replace("\"", ""),
+        })
+        .collect::<Vec<Blob>>();
+
+    println!("{:#?}", tree);
 
     return Ok(());
 }
@@ -69,17 +93,14 @@ async fn get_branches(client: &reqwest::Client) -> Result<ShaUrl, Box<dyn std::e
         .json::<serde_json::Value>()
         .await?;
 
-    let res = serde_json::to_string_pretty(&res["commit"]["commit"]["tree"])?;
-
-    let sha: String = res["commit"]["commit"]["tree"]["sha"].try_into()?;
-    let url: String = res["commit"]["commit"]["tree"]["url"].try_into()?;
-
-    return Ok(ShaUrl {});
-
-    println!("{}", res);
-    todo!();
-
-    // return Ok(branch);
+    return Ok(ShaUrl {
+        sha: res["commit"]["commit"]["tree"]["sha"]
+            .to_string()
+            .replace("\"", ""),
+        url: res["commit"]["commit"]["tree"]["url"]
+            .to_string()
+            .replace("\"", ""),
+    });
 }
 
 fn get_files() -> Vec<String> {
