@@ -46,4 +46,5 @@ features = ["derive"]
 [dependencies.serde_json]
 version = "1"
   
-
+[dependencies.base64]
+version = "0"

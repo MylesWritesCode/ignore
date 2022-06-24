@@ -339,6 +339,7 @@ dependencies = [
 name = "ignore"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "clap",
  "git2",
  "reqwest",

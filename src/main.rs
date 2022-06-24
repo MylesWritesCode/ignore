@@ -1,9 +1,9 @@
 #![allow(dead_code)]
-use std::{collections::HashMap, hash::Hash};
+#![allow(unused_variables)]
 
 use clap::Parser;
 use git2::Repository;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 mod commands;
 
@@ -26,9 +26,6 @@ const REPO: &str = "gitignore";
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    // get query
-    println!("{}", cli.query);
-
     // @note I mean, there's also the github public API that's much, much easier
     //       to use :)
 
@@ -40,13 +37,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     return Ok(());
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct ShaUrl {
     sha: String,
     url: String,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct Blob {
     sha: String,
     url: String,
@@ -59,7 +56,6 @@ async fn with_rest(term: &str) -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let main_branch = get_branches(&client).await?;
-    println!("{:#?}", main_branch);
 
     let tree = client
         .get(main_branch.url)
@@ -80,7 +76,21 @@ async fn with_rest(term: &str) -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect::<Vec<Blob>>();
 
-    println!("{:#?}", tree);
+    let blob = get_file(&tree, term);
+
+    let res = client
+        .get(blob.url)
+        .send()
+        .await?
+        .json::<serde_json::Value>()
+        .await?;
+
+    if let Some(content) = res["content"].as_str() {
+        let content = base64::decode(&content.replace("\n", ""))?;
+        let decoded = std::str::from_utf8(&content)?.to_string();
+
+        println!("{}", decoded);
+    }
 
     return Ok(());
 }
@@ -103,8 +113,12 @@ async fn get_branches(client: &reqwest::Client) -> Result<ShaUrl, Box<dyn std::e
     });
 }
 
-fn get_files() -> Vec<String> {
-    todo!()
+fn get_file(tree: &Vec<Blob>, term: &str) -> Blob {
+    return tree
+        .iter()
+        .find(|&blob| blob.path.to_lowercase().contains(&term.to_lowercase()))
+        .unwrap()
+        .to_owned();
 }
 
 fn with_libgit() -> Result<(), git2::Error> {
