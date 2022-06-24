@@ -1,124 +1,49 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use clap::Parser;
+use clap::{ArgEnum, Parser};
 use git2::Repository;
-use serde::{Deserialize, Serialize};
 
 mod commands;
+mod with;
+use with::{rest_direct::*, rest_tree_walking::*};
 
 #[derive(Parser)]
 #[clap(name = "ignore")]
 #[clap(author = "Myles <myles@themapletree.io>")]
 #[clap(version = "0.1.0")]
 #[clap(about = "Outputs the typical gitignore for a search term")]
-
 struct Cli {
     query: String,
+    #[clap(short = 'i')]
+    #[clap(arg_enum)]
+    implementation: Implementation,
+}
+
+#[derive(Clone, ArgEnum)]
+enum Implementation {
+    RestTreeWalking,
+    RestDirect,
 }
 
 const REMOTE: &str = "https://github.com/github/gitignore";
 const BASE: &str = "https://api.github.com";
 const OWNER: &str = "github";
 const REPO: &str = "gitignore";
+const BRANCH: &str = "main";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    // @note I mean, there's also the github public API that's much, much easier
-    //       to use :)
-
-    with_rest_tree_walking(&cli.query).await?;
-
-    // check gitignore if a file exists
-    // if one exists, output to stdout
-    // else output error "can't find gitignore for query"
-    return Ok(());
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-struct ShaUrl {
-    sha: String,
-    url: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-struct Blob {
-    sha: String,
-    url: String,
-    path: String,
-}
-
-async fn with_rest_tree_walking(term: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let client = reqwest::Client::builder()
-        .user_agent("MCA-Ignore-Tool")
-        .build()?;
-
-    let main_branch = get_branches(&client).await?;
-
-    let tree = client
-        .get(main_branch.url)
-        .send()
-        .await?
-        .json::<serde_json::Value>()
-        .await?
-        .get("tree".to_string())
-        .unwrap()
-        .to_owned()
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|x| Blob {
-            sha: x["sha"].to_string().replace("\"", ""),
-            url: x["url"].to_string().replace("\"", ""),
-            path: x["path"].to_string().replace("\"", ""),
-        })
-        .collect::<Vec<Blob>>();
-
-    let blob = get_file(&tree, term);
-
-    let res = client
-        .get(blob.url)
-        .send()
-        .await?
-        .json::<serde_json::Value>()
-        .await?;
-
-    if let Some(content) = res["content"].as_str() {
-        let content = base64::decode(&content.replace("\n", ""))?;
-        let decoded = std::str::from_utf8(&content)?.to_string();
-
-        println!("{}", decoded);
+    if let Implementation::RestTreeWalking = cli.implementation {
+        // With a reqwest client going through the tree. Kinda gross but it works.
+        with_rest_tree_walking(&cli.query, BASE, OWNER, REPO).await?
+    } else {
+        with_rest_direct(&cli.query, BASE, OWNER, REPO, BRANCH).await?
     }
 
     return Ok(());
-}
-
-async fn get_branches(client: &reqwest::Client) -> Result<ShaUrl, Box<dyn std::error::Error>> {
-    let res = client
-        .get(format!("{}/repos/{}/{}/branches/main", BASE, OWNER, REPO))
-        .send()
-        .await?
-        .json::<serde_json::Value>()
-        .await?;
-
-    return Ok(ShaUrl {
-        sha: res["commit"]["commit"]["tree"]["sha"]
-            .to_string()
-            .replace("\"", ""),
-        url: res["commit"]["commit"]["tree"]["url"]
-            .to_string()
-            .replace("\"", ""),
-    });
-}
-
-fn get_file(tree: &Vec<Blob>, term: &str) -> Blob {
-    return tree
-        .iter()
-        .find(|&blob| blob.path.to_lowercase().contains(&term.to_lowercase()))
-        .unwrap()
-        .to_owned();
 }
 
 fn with_libgit() -> Result<(), git2::Error> {
