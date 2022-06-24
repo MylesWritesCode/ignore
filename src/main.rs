@@ -56,41 +56,30 @@ async fn with_rest(term: &str) -> Result<(), Box<dyn std::error::Error>> {
         .user_agent("MCA-Ignore-Tool")
         .build()?;
 
-    let branch = get_branches(&client).await?;
+    let tree = get_branches(&client).await?;
 
-    let res = client
-        .get(&branch.url)
-        .send()
-        .await?
-        .json::<serde_json::Value>()
-        .await?;
-
-    let commit_url = serde_json::to_string_pretty(&res["commit"]["tree"]["url"])?;
-
-    println!("{}", commit_url);
-    // println!("{:#?}", &res);
     return Ok(());
 }
 
 async fn get_branches(client: &reqwest::Client) -> Result<ShaUrl, Box<dyn std::error::Error>> {
     let res = client
-        .get(format!("{}/repos/{}/{}/branches", BASE, OWNER, REPO))
+        .get(format!("{}/repos/{}/{}/branches/main", BASE, OWNER, REPO))
         .send()
         .await?
-        // .json::<serde_json::Value>()
-        .json::<Vec<Branch>>()
+        .json::<serde_json::Value>()
         .await?;
 
-    let branch = res
-        .iter()
-        .filter(|&branch| branch.name == "main")
-        .collect::<Vec<&Branch>>()
-        .get(0)
-        .expect("Main branch not found")
-        .commit
-        .to_owned();
+    let res = serde_json::to_string_pretty(&res["commit"]["commit"]["tree"])?;
 
-    return Ok(branch);
+    let sha: String = res["commit"]["commit"]["tree"]["sha"].try_into()?;
+    let url: String = res["commit"]["commit"]["tree"]["url"].try_into()?;
+
+    return Ok(ShaUrl {});
+
+    println!("{}", res);
+    todo!();
+
+    // return Ok(branch);
 }
 
 fn get_files() -> Vec<String> {
