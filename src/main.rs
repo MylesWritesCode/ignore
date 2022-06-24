@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // @note I mean, there's also the github public API that's much, much easier
     //       to use :)
 
-    with_rest(&cli.query).await?;
+    with_rest_tree_walking(&cli.query).await?;
 
     // check gitignore if a file exists
     // if one exists, output to stdout
@@ -50,7 +50,7 @@ struct Blob {
     path: String,
 }
 
-async fn with_rest(term: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn with_rest_tree_walking(term: &str) -> Result<(), Box<dyn std::error::Error>> {
     let client = reqwest::Client::builder()
         .user_agent("MCA-Ignore-Tool")
         .build()?;
